@@ -1,0 +1,8 @@
+program contador {
+    /* comentario para probar el lexer */
+    int pasos=5;
+    while (pasos>0&&pasos!=2) {
+        pasos=pasos-1;
+    }
+    print(pasos%2);
+}

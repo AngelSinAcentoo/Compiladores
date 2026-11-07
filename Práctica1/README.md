@@ -1,64 +1,38 @@
 # Practica 1 - Lexer de MiniLang
+## Escobar Hernández Angel Emiliano
+## Compiladores
+## Grupo 06
 
-Este es mi lexer para la Practica 1 de Compiladores. Esta hecho a mano, sin usar
-lex/flex ni nada parecido: el programa lee el codigo fuente caracter por
-caracter y va armando la lista de tokens el mismo.
+En esta práctica implementé un analizador léxico manual para MiniLang. El programa lee un archivo `.mini` carácter por carácter y muestra los tokens en el orden en que aparecen. No ejecuta las instrucciones ni comprueba si la estructura del programa es válida.
 
-## Como funciona
+## Requisitos e instalación
 
-`lexer.py` tiene una clase `Lexer` que guarda tres cosas: el codigo fuente
-completo, la posicion donde vamos leyendo y la linea/columna actual (esto
-ultimo es solo para que los mensajes de error sean mas utiles).
+Se necesita Python 3. El código solo usa módulos incluidos con Python, por lo que no hay paquetes adicionales que instalar. Basta con copiar la carpeta del proyecto, abrir una terminal dentro de ella y comprobar que Python esté disponible con `python --version`.
 
-El metodo `analizar()` es el corazon del programa: en cada vuelta del ciclo
-mira el caracter actual y decide que hacer:
+## Cómo funciona
 
-- Si es un espacio, tab o salto de linea, se ignora.
-- Si empieza un comentario `/* ... */`, se salta hasta encontrar el cierre.
-- Si es una letra, se lee el identificador completo (letras + digitos). Luego
-  se clasifica como palabra reservada (`program`, `int`, `print`, `float`,
-  `bool`, `if`, `while`, `for`, `return` o `class`), como literal booleano
-  (`true`) o como `ID`.
-- Si empieza con un digito, se lee un entero como `NUM` o un decimal como
-  `FLOAT_NUM` (por ejemplo, `3.141592`).
-- Los operadores de dos caracteres (`<=`, `>=`, `==`) se revisan antes que los
-  de un caracter para aplicar la regla de mayor coincidencia. Tambien reconoce
-  `= + - * / < > ; ( ) { }`.
-- Si no calza con nada de lo anterior, se lanza un `ErrorLexico` indicando el
-  simbolo y en donde aparecio.
+Primero, `main()` recibe la ruta del archivo y lee su contenido como UTF-8. Después llama a `tokenizar()`, que crea un objeto `Lexer`. El método `analizar()` recorre el texto, ignora espacios y comentarios de bloque `/* ... */`, y va formando la lista de tokens. `Token` guarda el tipo, el lexema y su posición; al imprimirlo se muestra como `(TIPO, lexema)`.
 
-Cada token se imprime con el formato `(TIPO, lexema)`, que es el mismo formato
-que pide el enunciado.
+El lexer reconoce las palabras `program`, `int`, `print`, `float`, `bool`, `if`, `while`, `for`, `return` y `class`; también distingue `true` y `false` como `BOOL_LITERAL`. Los identificadores comienzan con una letra ASCII y pueden continuar con letras o dígitos. Los enteros se clasifican como `NUM` y los decimales con dígitos a ambos lados del punto como `FLOAT_NUM`.
 
-## Como ejecutarlo
+Los símbolos simples que reconoce son `=`, `+`, `-`, `*`, `/`, `%`, `<`, `>`, `!`, `;`, `(`, `)`, `{` y `}`. También reconoce `<=`, `>=`, `==`, `!=`, `&&` y `||`. Primero revisa los operadores de dos caracteres para que, por ejemplo, `==` no se separe en dos signos `=`. Si aparece un símbolo desconocido o un comentario sin cierre, `ErrorLexico` indica la línea y la columna.
 
-Se necesita Python 3. El programa recibe la ruta de un archivo con codigo
-MiniLang:
+## Cómo ejecutarlo
+
+Desde la carpeta del proyecto se escribe `python lexer.py` seguido del archivo que se quiere analizar. Por ejemplo:
 
 ```bash
-python lexer.py ejemplo.mini
+python lexer.py ejemplo1p1.mini
+python lexer.py ejemplo2p1.mini
 ```
 
-Tambien se puede importar y usar la funcion `tokenizar(codigo)` desde otro
-script, que recibe un string y devuelve la lista de tokens.
+El primer archivo termina con código de salida `0`. Si hay un error léxico, como en el segundo archivo, termina con `1`. Si no puede abrir el archivo, termina con `2`.
 
-## Pruebas que hice
+## Pruebas realizadas
 
-### Prueba 1: el ejemplo del enunciado
+En `ejemplo1p1.mini` declaré `x`, le asigné `5+3` y escribí `print(x)`. Al ejecutar el lexer obtuve estos tokens:
 
-Archivo de entrada:
-
-```
-program ejemplo {
-  int x;
-  x = 5 + 3;
-  print(x);
-}
-```
-
-Salida del lexer:
-
-```
+```text
 (PROGRAM, program)
 (ID, ejemplo)
 (LBRACE, {)
@@ -79,102 +53,10 @@ Salida del lexer:
 (RBRACE, })
 ```
 
-Coincide exactamente con lo que pide el PDF de la practica.
+En `ejemplo2p1.mini` escribí `x=5@3;` en la línea 4. Como `@` no está definido, la salida fue:
 
-### Prueba 2: variables con nombres distintos y un comentario
-
-Quise probar con otros nombres de variable y ademas meter un comentario de
-bloque en medio, para revisar que se ignora bien:
-
-```
-program suma {
-  /* este programa suma dos numeros */
-  int total;
-  total = 12 + 8;
-  print(total);
-}
+```text
+Error lexico en linea 4, columna 8: simbolo '@' no reconocido
 ```
 
-Salida:
-
-```
-(PROGRAM, program)
-(ID, suma)
-(LBRACE, {)
-(INT, int)
-(ID, total)
-(SEMICOLON, ;)
-(ID, total)
-(ASSIGN, =)
-(NUM, 12)
-(PLUS, +)
-(NUM, 8)
-(SEMICOLON, ;)
-(PRINT, print)
-(LPAREN, ()
-(ID, total)
-(RPAREN, ))
-(SEMICOLON, ;)
-(RBRACE, })
-```
-
-El comentario no aparece en ningun lado de la salida, que es justo lo que
-tiene que pasar.
-
-### Prueba 3: simbolo invalido
-
-Con la entrada del enunciado:
-
-```
-x = 5 @ 3;
-```
-
-el lexer se detiene y muestra:
-
-```
-Error lexico en linea 1, columna 7: simbolo '@' no reconocido
-```
-
-Ademas probe dejando un comentario de bloque sin cerrar (`/* algo` sin el
-`*/`) y tambien lanza un error lexico avisando que falta el cierre.
-
-## Extension con tokens de las diapositivas
-
-Ademas de los tokens de la practica, el lexer reconoce los ejemplos de
-palabras y operadores que aparecen en las diapositivas:
-
-- Palabras reservadas: `if`, `while`, `for`, `return`, `class`, `float` y
-  `bool`.
-- Literales booleanos: `true` y `false`, ambos con tipo `BOOL_LITERAL`.
-- Literal decimal, con tipo `FLOAT_NUM`.
-- Operadores: `-`, `*`, `/`, `%`, `<`, `>`, `!`, `<=`, `>=`, `==`, `!=`, `&&` y
-  `||`.
-
-Se conservan los tipos de la practica (`ID`, `NUM`, `INT`, `PRINT`, `ASSIGN`,
-`PLUS` y los delimitadores) para que sus ejemplos sigan generando la misma
-salida. La práctica original no define la gramática de `if`, `for`, clases ni
-tipos booleanos; el lexer solo reconoce sus tokens, no valida esas estructuras.
-
-Ejemplo de entrada:
-
-```
-if (x <= 3.5) { return x - 1; }
-```
-
-Salida esperada:
-
-```
-(IF, if)
-(LPAREN, ()
-(ID, x)
-(LE, <=)
-(FLOAT_NUM, 3.5)
-(RPAREN, ))
-(LBRACE, {)
-(RETURN, return)
-(ID, x)
-(MINUS, -)
-(NUM, 1)
-(SEMICOLON, ;)
-(RBRACE, })
-```
+También ejecuté `ejemplo3p1.mini`, `ejemplo4p1.mini` y `ejemplo5p1.mini`. El tercero muestra números decimales, el cuarto booleanos y operadores compuestos, y el quinto un comentario de bloque y un ciclo `while`. Los tres terminaron con código `0`. En el reporte Word están las capturas del código y de la salida de cada ejemplo.

@@ -1,0 +1,5 @@
+program promedio {
+    float total=12.5;
+    total=total+2;
+    print(total);
+}

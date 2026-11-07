@@ -1,0 +1,6 @@
+program condicion {
+    bool activo=true;
+    if (activo==true&&5>=3) {
+        print(activo);
+    }
+}

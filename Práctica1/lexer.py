@@ -1,9 +1,6 @@
-# Practica 1 - Analizador lexico de MiniLang
-# Compiladores, 2026
-#
-# La idea es recorrer el codigo caracter por caracter (nada de lex/flex) y
-# armar la lista de tokens nosotros mismos. Si aparece algo raro que no
-# sabemos reconocer, se reporta como error lexico.
+# Practica 1 -Analizador lexico de MiniLang
+#Angel Emiliano Escobar Hernández
+# Compiladores Grupo 06
 
 import argparse
 import sys
@@ -21,13 +18,10 @@ PALABRAS_RESERVADAS = {
     "for": "FOR",
     "return": "RETURN",
     "class": "CLASS",
-}
-# literales booleanos
-LITERALES_BOOLEANOS = {
     "true": "BOOL_LITERAL",
     "false": "BOOL_LITERAL",
 }
-# operadores de dos caracteres, se revisan antes que los de uno solo (mayor coincidencia)
+# operadores de dos caracteres, se revisan antes que los de uno solo
 SIMBOLOS_COMPUESTOS = {
     "<=": "LE",
     ">=": "GE",
@@ -56,7 +50,7 @@ SIMBOLOS_SIMPLES = {
 
 
 class Token:
-    # guarda tipo, lexema y donde aparecio (para los mensajes de error)
+    # guarda tipo, lexema y donde aparecio para los mensajes de error
     def __init__(self, tipo, lexema, linea, columna):
         self.tipo = tipo
         self.lexema = lexema
@@ -64,7 +58,7 @@ class Token:
         self.columna = columna
 
     def __repr__(self):
-        return "({}, {})".format(self.tipo, self.lexema)  # formato que pide el enunciado
+        return "({}, {})".format(self.tipo, self.lexema)  # formato de la práctica
 
 
 class ErrorLexico(Exception):
@@ -77,6 +71,7 @@ class ErrorLexico(Exception):
 
 
 class Lexer:
+    # hace todo el trabajo: guarda el codigo y la posicion donde vamos leyendo
     def __init__(self, codigo_fuente):
         self.codigo = codigo_fuente
         self.pos = 0
@@ -84,6 +79,7 @@ class Lexer:
         self.columna = 1
 
     def fin_de_entrada(self):
+        # true cuando ya no queda nada por leer
         return self.pos >= len(self.codigo)
 
     def ver(self, adelanto=0):
@@ -106,6 +102,7 @@ class Lexer:
 
     @staticmethod
     def es_letra(c):
+        # solo a-z / A-Z, nada de acentos
         return ("a" <= c <= "z") or ("A" <= c <= "Z")
 
     @staticmethod
@@ -113,17 +110,18 @@ class Lexer:
         return "0" <= c <= "9"
 
     def leer_identificador(self):
+        # junta letras y digitos hasta que el siguiente caracter deje de formar parte, luego se ve si es palabra reservada
         inicio = self.pos
         while not self.fin_de_entrada() and (self.es_letra(self.ver()) or self.es_digito(self.ver())):
             self.avanzar()
         return self.codigo[inicio:self.pos]
 
     def leer_numero(self):
+        # lee los digitos enteros primero, la parte decimal se revisa despues
         inicio = self.pos
         while not self.fin_de_entrada() and self.es_digito(self.ver()):
             self.avanzar()
-        # si hay punto seguido de digito es decimal, si no se deja como NUM y
-        # el punto se reporta como simbolo raro en la siguiente vuelta
+        # si hay punto seguido de digito es decimal, si no se deja como NUM y el punto se reporta como simbolo raro en la siguiente vuelta
         tipo = "NUM"
         if self.ver() == "." and self.es_digito(self.ver(1)):
             tipo = "FLOAT_NUM"
@@ -162,9 +160,7 @@ class Lexer:
             columna_tok = self.columna
             if self.es_letra(c):
                 lexema = self.leer_identificador()
-                tipo = PALABRAS_RESERVADAS.get(lexema)
-                if tipo is None:
-                    tipo = LITERALES_BOOLEANOS.get(lexema, "ID")
+                tipo = PALABRAS_RESERVADAS.get(lexema, "ID")
                 tokens.append(Token(tipo, lexema, linea_tok, columna_tok))
                 continue
             if self.es_digito(c):
@@ -181,7 +177,7 @@ class Lexer:
                 self.avanzar()
                 tokens.append(Token(SIMBOLOS_SIMPLES[c], c, linea_tok, columna_tok))
                 continue
-            # no calzo con nada de lo anterior, simbolo desconocido
+            # no coincide con ninguna regla anterior: simbolo desconocido
             raise ErrorLexico("simbolo '{}' no reconocido".format(c), linea_tok, columna_tok)
         return tokens
 
@@ -193,6 +189,7 @@ def tokenizar(codigo_fuente):
 
 
 def main():
+    # lee el archivo que llega por linea de comandos y va imprimiendo los tokens
     parser = argparse.ArgumentParser(description="Lexer de MiniLang - Practica 1 de Compiladores")
     parser.add_argument("archivo", help="ruta al archivo con codigo MiniLang")
     args = parser.parse_args()
@@ -213,4 +210,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main())  # el codigo de salida sirve para saber si hubo error
